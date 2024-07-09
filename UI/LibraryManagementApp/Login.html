@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Library Management App - Login</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+
+        .container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .form-container {
+            width: 300px;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-container h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .form-container label {
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        .form-container input[type="text"],
+        .form-container input[type="password"] {
+            width: calc(100% - 20px);
+            padding: 8px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+
+        .form-container button {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+
+        .form-container button:hover {
+            background-color: #45a049;
+        }
+
+        .error-message {
+            color: red;
+            font-size: 14px;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .register-link {
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .register-link a {
+            text-decoration: none;
+            color: #4CAF50;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="form-container">
+            <h2>Login to Library Management App</h2>
+            <form id="loginForm" @submit.prevent="login">
+                <label for="username">Username:</label>
+                <input type="text" id="username" v-model="user.username" required>
+                <label for="password">Password:</label>
+                <input type="password" id="password" v-model="user.password" required>
+                <button type="submit">Login</button>
+                <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
+            </form>
+
+            <div class="register-link">
+                <a href="Register.html">Don't have an account? Register here</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include Vue.js -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    
+    <!-- Include Axios -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.4/axios.min.js"></script>
+
+    <script>
+        const API_URL = "http://localhost:5248/Account/";
+
+        new Vue({
+            el: '.container',
+            data() {
+                return {
+                    user: {
+                        username: '',
+                        password: ''
+                    },
+                    errorMessage: ''
+                };
+            },
+            methods: {
+                async login() {
+                    try {
+                        const response = await axios.post(API_URL + "login", this.user);
+                        console.log("Login response:", response.data);
+                        this.errorMessage = '';
+                        
+                        // Store username in localStorage
+                        localStorage.setItem('username', this.user.username);
+
+                        // Call getUserInfo to fetch userRole and store it in localStorage
+                        const userInfoResponse = await axios.get(API_URL + `getUserInfo?username=${this.user.username}`);
+                        const userRole = userInfoResponse.data.RoleName;
+                        const userId = userInfoResponse.data.UserId;
+                        localStorage.setItem('userRole', userRole);
+                        localStorage.setItem('userId', userId);
+                        alert("Login successful!");
+                        // Redirect or navigate to the next page after successful login
+                        window.location.href = "index.html";
+                    } catch (error) {
+                        console.error("Login error:", error.response.data);
+                        this.errorMessage = error.response.data;
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>

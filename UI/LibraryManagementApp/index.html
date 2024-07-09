@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Library Management App</title>
+  <style>
+    body {
+      margin: 20px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      margin-bottom: 20px;
+    }
+
+    th,
+    td {
+      padding: 8px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+
+    img {
+      max-width: 150px;
+      height: auto;
+      display: block;
+      margin: 0 auto;
+    }
+
+    .button-container {
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    .button-container button {
+      margin-right: 15px;
+    }
+
+    .add-btn {
+      background-color: #4CAF50;
+      color: white;
+      padding: 8px 16px;
+      border: none;
+      cursor: pointer;
+    }
+
+    .update-btn {
+      background-color: #FFA500;
+      color: white;
+      padding: 8px 16px;
+      border: none;
+      cursor: pointer;
+    }
+
+    .checkbook-btn {
+      background-color: #b1db69;
+      color: white;
+      padding: 8px 16px;
+      border: none;
+      cursor: pointer;
+    }
+
+    .delete-btn {
+      background-color: #f44336;
+      color: white;
+      padding: 8px 16px;
+      border: none;
+      cursor: pointer;
+    }
+
+    .clear-btn {
+      background-color: #808080;
+      color: white;
+      padding: 8px 16px;
+      border: none;
+      cursor: pointer;
+      margin-left: 15px;
+    }
+
+    .form-container {
+      margin-top: 20px;
+      width: 400px;
+    }
+
+    .form-container label {
+      display: inline-block;
+      width: 120px;
+    }
+
+    .form-container input {
+      width: calc(100% - 130px);
+      margin-bottom: 10px;
+      padding: 8px;
+    }
+
+    .form-container input[type="date"] {
+      width: calc(100% - 130px);
+    }
+
+    .form-container input[type="number"] {
+      width: calc(100% - 130px);
+    }
+
+    .disabled-button {
+      background-color: #ccc !important;
+      cursor: not-allowed;
+    }
+
+    .filter-input {
+      width: 100%;
+      padding: 6px;
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app">
+    <h2 style="text-align: center;">Library Management App</h2>
+
+    <div class="container">
+      <!-- Welcome message -->
+      <div class="welcome-message">
+        <span v-if="loggedInUser">Welcome, {{ loggedInUser }} Your role is {{ userRole }}</span>
+        <button v-if="loggedInUser" class="clear-btn" @click="logout">Logout</button>
+      </div>
+    </div>
+
+    <table border="1">
+      <thead>
+        <tr>
+          <th>Select</th>
+          <th>BookId</th>
+          <th>
+            Title
+            <br>
+            <input type="text" v-model="filters.title" @input="applyFiltersAndSort" placeholder="Filter by Title"
+              class="filter-input">
+            <button id="Title" @click="toggleSort('Title')">Sort</button>
+          </th>
+          <th>
+            Author
+            <br>
+            <input type="text" v-model="filters.author" @input="applyFiltersAndSort" placeholder="Filter by Author"
+              class="filter-input">
+            <button id="Author" @click="toggleSort('Author')">Sort</button>
+          </th>
+          <th>Description</th>
+          <th>Cover Image</th>
+          <th>Publisher</th>
+          <th>Publication Date</th>
+          <th>Category</th>
+          <th>ISBN</th>
+          <th>Page Count</th>
+          <th>Added Date</th>
+          <th>
+            Is Checked Out
+            <br>
+            <select v-model="filters.availability" @change="applyFiltersAndSort" class="filter-input">
+              <option value="">All</option>
+              <option value="true">Checked Out</option>
+              <option value="false">Available</option>
+            </select>
+            <button id="IsCheckedOut" @click="toggleSort('IsCheckedOut')">Sort</button>
+          </th>
+          <th>Checked Out Date</th>
+          <th>Next Available Date</th>
+          <th>Number of Reviews</th>
+        </tr>
+      </thead>
+      <tbody id="table-content">
+        <tr v-for="book in filteredBooks" :key="book.BookId">
+          <td><input type="radio" v-model="selectedBookId" :value="book.BookId" @click="toggleSelection(book)"></td>
+          <td>{{ book.BookId }}</td>
+          <td>{{ book.Title }}</td>
+          <td>{{ book.Author }}</td>
+          <td>{{ book.Description }}</td>
+          <td>
+            <img v-if="book.CoverImage" :src="book.CoverImage" alt="Book Cover">
+          </td>
+          <td>{{ book.Publisher }}</td>
+          <td>{{ book.PublicationDate }}</td>
+          <td>{{ book.Category }}</td>
+          <td>{{ book.ISBN }}</td>
+          <td>{{ book.PageCount }}</td>
+          <td>{{ book.AddedDate }}</td>
+          <td>{{ book.IsCheckedOut }}</td>
+          <td>{{ book.CheckedOutDate }}</td>
+          <td>{{ book.NextAvailableDate }}</td>
+          <td>
+            <template v-if="book.ReviewCount >= 0">
+              <a :href="'Reviews.html?BookId=' + book.BookId">
+                ({{ book.ReviewCount }})
+              </a>
+            </template>
+            <template v-else>
+              {{ book.ReviewCount }}
+            </template>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div v-if="userRole === 'Librarian'" class="form-container">
+      <label for="Title">Title:</label>
+      <input id="Title" v-model="newBook.Title" required><br>
+      <label for="Author">Author:</label>
+      <input id="Author" v-model="newBook.Author" required><br>
+      <label for="Description">Description:</label>
+      <input id="Description" v-model="newBook.Description" required><br>
+      <label for="CoverImage">Cover Image URL: </label>
+      <input id="CoverImage" v-model="newBook.CoverImage"><br>
+      <label for="Publisher">Publisher:</label>
+      <input id="Publisher" v-model="newBook.Publisher"><br>
+      <label for="PublicationDate">Publication Date:</label>
+      <input type="date" id="PublicationDate" v-model="newBook.PublicationDate"><br>
+      <label for="Category">Category:</label>
+      <input id="Category" v-model="newBook.Category"><br>
+      <label for="ISBN">ISBN:</label>
+      <input id="ISBN" v-model="newBook.ISBN"><br>
+      <label for="PageCount">Page Count:</label>
+      <input type="number" id="PageCount" v-model="newBook.PageCount"><br>
+    </div>
+
+    <div class="button-container">
+      <button class="clear-btn" @click="clearForm">Clear Form</button>
+      <button v-if="!selectedBookId && userRole === 'Librarian'" class="add-btn" @click="addBook">Add Book</button>
+      <button v-if="selectedBookId && newBook.IsCheckedOut && userRole === 'Librarian'" class="checkbook-btn" @click="checkInOut(selectedBookId, 'CheckIn')">Check In</button>
+      <button v-if="selectedBookId && !newBook.IsCheckedOut" class="checkbook-btn" @click="checkInOut(selectedBookId, 'CheckOut')">Check Out</button>
+      <!-- !selectedBook?.IsCheckedOut OR just plain ole !isNotCheckedOut with compute function-->
+      <button v-if="selectedBookId && userRole === 'Librarian'" class="update-btn" @click="updateBook(selectedBookId)">Update Book</button>
+      <button v-if="selectedBookId && userRole === 'Librarian'" class="delete-btn" @click="confirmDelete">Delete Selected Book</button>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.7.2/axios.min.js"
+    integrity="sha512-JSCFHhKDilTRRXe9ak/FJ28dcpOJxzQaCd3Xg8MyF6XFjODhy/YMCM8HW0TFDckNHWUewW+kfvhin43hKtJxAw=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+  <script type="module">
+    import { createApp } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js';
+
+    const API_URL = "http://localhost:5248/";
+
+    createApp({
+      data() {
+        return {
+          books: [],
+          newBook: {
+            Title: "",
+            Author: "",
+            Description: "",
+            CoverImage: "",
+            Publisher: "",
+            PublicationDate: "",
+            Category: "",
+            ISBN: "",
+            PageCount: ""
+          },
+          selectedBookId: null,
+          showModal: false,
+          selectedBook: null,
+          reviews: [],
+          loggedInUser: "", // To store logged in user's name
+          searchText: "",        // To store search input
+          filteredBooks: [],     // To store filtered books
+          sortKey: '',           // Key to sort by
+          sortOrder: 'asc',      // Sort order ('asc' or 'desc')
+          userRole: '',
+          filters: {
+            title: '',
+            author: '',
+            availability: ''
+          }
+        };
+      },
+      methods: {
+        async refreshData() {
+          try {
+            const response = await axios.get(API_URL + "api/Library/GetBooks");
+            this.books = response.data;
+            this.applyFiltersAndSort();  // Apply filters and sorting after data refresh
+          } catch (error) {
+            console.error("Error fetching books:", error);
+          }
+        },
+        async addBook() {
+            try {
+                const response = await axios.post(API_URL + "api/Library/AddBook", this.newBook);
+                console.log("Book added successfully:", response.data);
+                this.clearForm();
+                await this.refreshData();
+            } catch (error) {
+                console.error("Error adding book:", error);
+                // Optionally handle specific errors or show error messages
+            }
+        },
+        async updateBook(bookId) {
+            try {
+
+                
+                //const response = await axios.put(`${API_URL}api/Library/UpdateBooks/${bookId}`, this.newBook);
+                const response = await axios.put(API_URL + "api/Library/UpdateBooks", this.newBook);
+
+                if (response.status === 200) {
+                    console.log("Book updated successfully:", response.data);
+                    this.clearForm();
+                    this.selectedBookId = null;
+                    await this.refreshData();
+                } else {
+                console.error("Error updating book:", response.data);
+                // Handle specific errors or show appropriate messages
+                }
+            } catch (error) {
+                console.error("Error updating book:", error);
+                // Handle network errors or other exceptions
+            }
+        },
+        async deleteBook(bookId) {
+        try {
+          const response = await axios.delete(`${API_URL}api/Library/DeleteBooks/${bookId}`);
+
+          if (response.status === 200) {
+            console.log("Book deleted successfully:", response.data);
+            // Update your UI to reflect the deletion (e.g., remove book from list)
+            this.clearForm();
+            this.selectedBookId = null;
+            await this.refreshData(); // Assuming this refreshes your book data
+          } else {
+            console.error("Error deleting book:", response.data);
+            // Handle specific errors or show appropriate messages to the user
+          }
+        } catch (error) {
+          console.error("Error deleting book:", error);
+          // Handle network errors or other exceptions
+        }
+      },
+      async checkInOut(bookId, action) {
+        try {
+          let response;
+          if (action === 'CheckOut') {
+            response = await axios.post(`${API_URL}api/Library/CheckOutBook/${bookId}`);
+          } else if (action === 'CheckIn') {
+            response = await axios.post(`${API_URL}api/Library/CheckInBook/${bookId}`);
+          }
+
+          if (response.status === 200) {
+            console.log(response.data); // Log success message or handle as needed
+            this.clearForm();
+            this.selectedBookId = null;
+            await this.refreshData();
+          } else {
+            console.error("Error updating book:", response.data); // Handle specific errors
+          }
+        } catch (error) {
+          console.error("Error updating book:", error); // Handle network errors or exceptions
+        }
+      },
+      clearForm() {
+          this.newBook = {
+            Title: "",
+            Author: "",
+            Description: "",
+            CoverImage: "",
+            Publisher: "",
+            PublicationDate: "",
+            Category: "",
+            ISBN: "",
+            PageCount: ""
+          };
+          this.selectedBookId = null;
+        },
+        toggleSelection(book) {
+          if (this.selectedBookId === book.BookId) {
+            this.selectedBookId = null;
+            this.clearForm();
+          } else {
+            this.selectedBookId = book.BookId;
+            this.newBook = { ...book }; // Copy book details to form for editing
+          }
+        },
+        confirmDelete() {
+          if (this.selectedBookId) {
+            if (confirm("Are you sure you want to delete this book?")) {
+              this.deleteBook(this.selectedBookId);
+            }
+          } else {
+            alert("Please select a book to delete.");
+          }
+        },
+        applyFiltersAndSort() {
+          let filteredBooks = this.books;
+
+          // Apply title filter
+          if (this.filters.title) {
+            filteredBooks = filteredBooks.filter(book =>
+              book.Title.toLowerCase().includes(this.filters.title.toLowerCase())
+            );
+          }
+
+          // Apply author filter
+          if (this.filters.author) {
+            filteredBooks = filteredBooks.filter(book =>
+              book.Author.toLowerCase().includes(this.filters.author.toLowerCase())
+            );
+          }
+
+          // Apply availability filter
+          if (this.filters.availability !== '') {
+            const isAvailable = this.filters.availability === 'false' ? false : true;
+            filteredBooks = filteredBooks.filter(book => book.IsCheckedOut === isAvailable);
+          }
+
+          // Sort filteredBooks
+          if (this.sortKey) {
+            filteredBooks.sort((a, b) => {
+              const fieldA = a[this.sortKey];
+              const fieldB = b[this.sortKey];
+
+              if (this.sortOrder === 'asc') {
+                return fieldA.localeCompare(fieldB);
+              } else {
+                return fieldB.localeCompare(fieldA);
+              }
+            });
+          }
+
+          this.filteredBooks = filteredBooks;
+        },
+        toggleSort(key) {
+          if (this.sortKey === key) {
+            this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
+          } else {
+            this.sortKey = key;
+            this.sortOrder = 'asc';
+          }
+
+          this.applyFiltersAndSort();
+        },
+        logout() {
+          try {
+            // Perform logout logic here (clear session, etc.)
+            this.loggedInUser = ""; // Clear logged in user
+            // Redirect to login page or perform any other necessary actions
+            window.location.href = "Login.html"; // Redirect to login page
+          } catch (error) {
+            console.error("Error logging out:", error);
+          }
+        }
+      },
+      created() {
+        const username = localStorage.getItem('username');
+        const userRole = localStorage.getItem('userRole');
+        if (username && userRole) {
+          this.loggedInUser = username;
+          this.userRole = userRole;
+        } else {
+          // Handle case where user is not logged in (e.g., redirect to login)
+          // Example:
+          // window.location.href = "Login.html";
+        }
+      },
+      mounted() {
+        // Fetch initial data on component mount
+        this.refreshData();
+      }
+    }).mount('#app');
+  </script>
+</body>
+
+</html>

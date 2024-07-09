@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reviews</title>
+  <style>
+    body {
+      margin: 20px;
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      margin-bottom: 20px;
+    }
+
+    th,
+    td {
+      padding: 8px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .button-container {
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    .clear-btn {
+      background-color: #808080;
+      color: white;
+      padding: 8px 16px;
+      border: none;
+      cursor: pointer;
+      margin-right: 15px;
+    }
+
+    .library-btn {
+      background-color: #5282cf;
+      color: white;
+      padding: 8px 16px;
+      border: none;
+      cursor: pointer;
+      margin-right: 15px;
+    }
+
+    .add-review-btn {
+      background-color: #4CAF50;
+      color: white;
+      padding: 8px 16px;
+      border: none;
+      cursor: pointer;
+    }
+
+    .form-container {
+      margin-top: 20px;
+      width: 400px;
+    }
+
+    .form-container label {
+      display: block;
+      margin-bottom: 10px;
+    }
+
+    .form-container input,
+    .form-container select {
+      width: calc(100% - 16px);
+      padding: 8px;
+      margin-bottom: 10px;
+    }
+
+    .form-container input[type="date"],
+    .form-container input[type="number"] {
+      width: calc(100% - 16px);
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app">
+    <h1>Welcome to Reviews!</h1>
+    <template>
+      <div v-if="reviews.length > 0">
+        <h3>Reviews for BookId: {{ reviews[0].BookId }}, Title: {{ reviews[0].Title }}</h3>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>ReviewId</th>
+              <th>Rating</th>
+              <th>User</th>
+              <th>Review Text</th>
+              <th>Review Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="review in reviews" :key="review.ReviewId">
+              <td>{{ review.ReviewId }}</td>
+              <td>{{ review.Rating }}</td>
+              <td>{{ review.UserId }}</td>
+              <td>{{ review.ReviewText }}</td>
+              <td>{{ new Date(review.ReviewDate).toLocaleDateString() }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div v-else>
+        No reviews available.
+      </div>
+    </template>
+
+    <div class="form-container" v-if="userRole === 'Customer'">
+      <label for="rating">Rating:</label>
+      <select id="rating" v-model="newReview.Rating">
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+      </select><br>
+      <label for="reviewText">Review Text:</label>
+      <input id="reviewText" v-model="newReview.ReviewText" required><br>
+    </div>
+
+    <div class="button-container">
+      <button class="clear-btn" @click="clearForm" v-if="userRole === 'Customer'">Clear Form</button>
+      <button class="clear-btn" @click="logout">Logout</button>
+      <button class="library-btn" @click="goToLibrary">Library</button>
+      <button class="add-review-btn" v-if="userRole === 'Customer'" @click="addNewReview(reviews[0].BookId)">Add Review</button>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.7.2/axios.min.js"></script>
+  <script>
+    const API_URL = "http://localhost:5248/";
+
+    new Vue({
+      el: '#app',
+      data: {
+        loggedInUser: "", // To store logged in user's name
+        reviews: [],
+        newReview: {
+          Rating: "",
+          ReviewText: ""
+        },
+        userRole: "", // To store logged in user's role
+        userId: "",
+      },
+      async mounted() {
+        this.fetchUserData();
+        const urlParams = new URLSearchParams(window.location.search);
+        const BookId = urlParams.get('BookId');
+
+        if (BookId) {
+          try {
+            const reviewsResponse = await axios.get(`${API_URL}api/Library/GetReviews?BookId=${BookId}`);
+            this.reviews = reviewsResponse.data;
+          } catch (error) {
+            console.error('Error fetching data:', error);
+          }
+        }
+      },
+      methods: {
+        fetchUserData() {
+          const username = localStorage.getItem('username');
+          const userRole = localStorage.getItem('userRole');
+          const userId = localStorage.getItem('userId');
+          if (username && userRole && userId) {
+            this.loggedInUser = username;
+            this.userRole = userRole;
+            this.userId = userId;
+          } else {
+            // Handle case where user is not logged in (e.g., redirect to login)
+            // Example:
+            // window.location.href = "Login.html";
+          }
+        },
+        goToLibrary() {
+          window.location.href = 'index.html';
+        },
+        addNewReview(bookId) {
+            // Validate data before submitting (optional)
+            if (!this.newReview.Rating || !this.userId || !this.newReview.ReviewText) {
+                alert('Please fill in all review details');
+                return;
+            }
+
+            const formData = new FormData();  // Use FormData for multiple data fields
+
+            // Include bookId in the request data
+            formData.append('bookId', bookId);  // Assuming 'bookId' is a parameter passed to the function
+
+            // Append each review property to the FormData
+            formData.append('Rating', parseInt(this.newReview.Rating));
+            formData.append('User', this.userId);
+            formData.append('ReviewText', this.newReview.ReviewText);
+
+            axios.post(API_URL + "api/Library/AddReview", formData)
+                .then((response) => {
+                this.refreshData(); // Refresh reviews after successful submission
+                alert(response.data); // Display response message (optional)
+
+                // Clear the review form after successful submission (optional)
+                this.newReview = {
+                    Rating: "",
+                    User: "",
+                    ReviewText: "",
+                };
+                })
+                .catch((error) => {
+                console.error('Error adding review:', error);
+                alert('An error occurred while adding the review.'); // Inform user about error
+                });
+        },
+        logout() {
+          localStorage.clear(); // Clear local storage on logout
+          window.location.href = "Login.html"; // Redirect to login page
+        },
+        clearForm() {
+          this.newReview = {
+            Rating: "",
+            ReviewText: ""
+          };
+        }
+      }
+    });
+  </script>
+</body>
+
+</html>

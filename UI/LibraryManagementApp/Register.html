@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Library Management App - Register</title>
+    <style>
+        body {
+            margin: 20px;
+        }
+
+        .form-container {
+            width: 300px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+
+        .form-container label {
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        .form-container input,
+        .form-container select {
+            width: calc(100% - 20px);
+            margin-bottom: 15px;
+            padding: 8px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+
+        .form-container button {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .form-container button:hover {
+            background-color: #45a049;
+        }
+
+        .error-message {
+            color: red;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .login-link {
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .login-link a {
+            text-decoration: none;
+            color: #4CAF50;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h2 style="text-align: center;">Register for Library Management App</h2>
+        <form id="registerForm" @submit.prevent="register">
+            <label for="username">Username:</label>
+            <input type="text" id="username" v-model="user.username" required>
+            <label for="email">Email:</label>
+            <input type="email" id="email" v-model="user.email" required>
+            <label for="password">Password:</label>
+            <input type="password" id="password" v-model="user.password" required>
+            <label for="role">Role:</label>
+            <select id="role" v-model="user.role" required>
+                <option v-for="role in roles" :key="role.Id" :value="role.Name">{{ role.Name }}</option>
+            </select>
+            <button type="submit">Register</button>
+            <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
+        </form>
+
+        <div class="login-link">
+            <a href="Login.html">Already have an account? Login here</a>
+        </div>
+    </div>
+
+    <!-- Include Vue.js -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    
+    <!-- Include Axios -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.4/axios.min.js" integrity="sha512-lTLt+W7MrmDfKam+r3D2LURu0F47a3QaW5nF0c6Hl0JDZ57ruei+ovbg7BrZ+0bjVJ5YgzsAWE+RreERbpPE1g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+    <script>
+        const API_URL = "http://localhost:5248/Account/";  // took away /api/
+
+        new Vue({
+            el: '#registerForm',
+            data() {
+                return {
+                    user: {
+                        username: '',
+                        email: '',
+                        password: '',
+                        role: 'Customer' // Default role set to Customer
+                    },
+                    roles: [],
+                    errorMessage: ''
+                };
+            },
+            created() {
+                this.fetchRoles();
+            },
+            methods: {
+                async fetchRoles() {
+                    try {
+                        const response = await axios.get(API_URL + "roles");
+                        this.roles = response.data;
+                        console.log("Roles fetched:", this.roles);
+                    } catch (error) {
+                        console.error("Error fetching roles:", error);
+                        this.errorMessage = "Failed to fetch roles";
+                    }
+                },
+                async register() {
+                    try {
+                        const response = await axios.post(API_URL + "register", this.user);
+                        console.log("Register response:", response.data);
+                        alert("Registration successful! Please log in.");
+                        // Redirect or navigate to the login page after successful registration
+                        window.location.href = "Login.html"; // Replace with your actual login page
+                    } catch (error) {
+                        console.error("Registration error:", error.response.data);
+                        this.errorMessage = error.response.data;
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
