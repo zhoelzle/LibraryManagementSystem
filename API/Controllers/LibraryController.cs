@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using System.Data;
 using System.Data.SqlClient;
 using System.Security.AccessControl;
+using LibraryManagementSystem.Models; // Make sure this namespace matches your project structure
 
 namespace LibraryManagementSystem.Controllers
 {
@@ -31,9 +32,9 @@ namespace LibraryManagementSystem.Controllers
             SqlDataReader myReader;
 
             try
-            { 
+            {
                 using (SqlConnection myCon = new SqlConnection(sqlDatasource))
-                { 
+                {
                     myCon.Open();
                     using (SqlCommand myCommand = new SqlCommand(query, myCon))
                     {
@@ -97,7 +98,7 @@ namespace LibraryManagementSystem.Controllers
 
         [HttpPost]
         [Route("AddBook")] // Ensure this matches your Axios request URL
-        public JsonResult AddBook(Book book)
+        public JsonResult AddBook(BookModel book)
         {
             string queryCheck = "SELECT COUNT(*) FROM dbo.Books WHERE Title = @Title";
 
@@ -160,70 +161,9 @@ namespace LibraryManagementSystem.Controllers
             }
         }
 
-
-
-        /*[HttpPost]
-        [Route("AddReview")]
-        public async Task<IActionResult> AddReview([FromBody] ReviewModel review)
-        {
-            if (review == null || review.UserId == 0 || string.IsNullOrEmpty(review.ReviewText) || review.Rating == 0)
-            {
-                return BadRequest("Please fill in all review details.");
-            }
-
-            string sqlDatasource = _configuration.GetConnectionString("DefaultConnection");
-
-            try
-            {
-                using (SqlConnection myCon = new SqlConnection(sqlDatasource))
-                {
-                    await myCon.OpenAsync();
-
-                    string query = @"INSERT INTO [dbo].[Reviews]
-                                     ([BookId]
-                                     ,[Title]
-                                     ,[UserId]
-                                     ,[Rating]
-                                     ,[ReviewText]
-                                     ,[ReviewDate])
-                                     VALUES
-                                     (@BookId
-                                     ,@Title
-                                     ,@UserId
-                                     ,@Rating
-                                     ,@ReviewText
-                                     ,@ReviewDate)";
-
-                    using (SqlCommand insertCommand = new SqlCommand(query, myCon))
-                    {
-                        insertCommand.Parameters.AddWithValue("@BookId", review.BookId);
-                        insertCommand.Parameters.AddWithValue("@Title", review.Title); // Assuming you want to store the review title as well
-                        insertCommand.Parameters.AddWithValue("@UserId", review.UserId);
-                        insertCommand.Parameters.AddWithValue("@Rating", review.Rating);
-                        insertCommand.Parameters.AddWithValue("@ReviewText", review.ReviewText);
-                        insertCommand.Parameters.AddWithValue("@ReviewDate", DateTime.UtcNow); // Using UTC time for consistency
-
-                        int rowsAffected = await insertCommand.ExecuteNonQueryAsync();
-                        if (rowsAffected > 0)
-                        {
-                            return Ok("Review added successfully.");
-                        }
-                        else
-                        {
-                            return StatusCode(500, "Failed to add review.");
-                        }
-                    }
-                }
-            }
-            catch (SqlException ex)
-            {
-                return StatusCode(500, $"Error: {ex.Message}");
-            }
-        }*/
-
         [HttpPost]
         [Route("AddReview")] // Ensure this matches your Axios request URL
-        public JsonResult AddReview(ReviewModel review)
+        public JsonResult AddReview(AddReviewModel review)
         {
             string queryCheck = "SELECT COUNT(*) FROM [master].[dbo].[AspNetUsers] WHERE Id = @UserId";
 
@@ -254,7 +194,7 @@ namespace LibraryManagementSystem.Controllers
                     // Check if book with the same title already exists
                     using (SqlCommand checkCommand = new SqlCommand(queryCheck, myCon))
                     {
-                        checkCommand.Parameters.AddWithValue("@UserId", review.Id);
+                        checkCommand.Parameters.AddWithValue("@UserId", review.UserId);
                         int existingCount = (int)checkCommand.ExecuteScalar();
 
                         if (existingCount < 1)
@@ -269,7 +209,7 @@ namespace LibraryManagementSystem.Controllers
                     {
                         insertCommand.Parameters.AddWithValue("@BookId", review.BookId);
                         insertCommand.Parameters.AddWithValue("@Title", review.Title); // Assuming you want to store the review title as well
-                        insertCommand.Parameters.AddWithValue("@UserId", review.Id);
+                        insertCommand.Parameters.AddWithValue("@UserId", review.UserId);
                         insertCommand.Parameters.AddWithValue("@Rating", review.Rating);
                         insertCommand.Parameters.AddWithValue("@ReviewText", review.ReviewText);
                         insertCommand.Parameters.AddWithValue("@ReviewDate", DateTime.UtcNow); // Using UTC time for consistency
@@ -376,7 +316,7 @@ namespace LibraryManagementSystem.Controllers
 
         [HttpPut]
         [Route("UpdateBooks")]
-        public JsonResult UpdateBooks(Book book)
+        public JsonResult UpdateBooks(BookModel book)
         {
             if (book.BookId == 0)
             {
@@ -436,7 +376,7 @@ namespace LibraryManagementSystem.Controllers
 
         [HttpPut]
         [Route("UpdateReview/{ReviewId}")]
-        public IActionResult UpdateReview(int ReviewId, [FromBody] ReviewModel review)
+        public IActionResult UpdateReview(int ReviewId, [FromBody] AddReviewModel review)
         {
             if (review == null)
             {
@@ -564,36 +504,5 @@ namespace LibraryManagementSystem.Controllers
                 return BadRequest($"Error: {ex.Message}");
             }
         }
-    }
-
-    
-
-    //Will the below need to evenutually go in it's own model file?
-    public class Book
-    {
-        public int BookId { get; set; }
-        public string Title { get; set; }
-        public string Author { get; set; }
-        public string Description { get; set; }
-        public string CoverImage { get; set; }
-        public string Publisher { get; set; }
-        public DateTime PublicationDate { get; set; }
-        public string Category { get; set; }
-        public string ISBN { get; set; }
-        public int PageCount { get; set; }
-        public DateTime AddedDate { get; set; }
-        public bool IsCheckedOut { get; set; }
-        public int ReviewCount { get; set; }
-    }
-
-    // Model class for Review
-    public class ReviewModel
-    {
-        public int BookId { get; set; }
-        public string Title { get; set; }
-        public string Id { get; set; } // Assuming UserId is not null in database
-        public int Rating { get; set; }
-        public string ReviewText { get; set; }
-        public DateTime ReviewDate { get; set; } // Assuming ReviewDate is set in backend
     }
 }
